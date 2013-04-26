@@ -1,0 +1,187 @@
+## setupAnalysis.jy - prepare input for analysis of a single sensor
+
+print "Entering setupAnalysis.jy"
+
+import os,sys
+from java.util import HashMap
+debug = True      ## Turn on for lots of fun
+
+def dcQuery(inType,lFolder,filter):
+   ## Perform dataCatalog query and store results in a 'pipeline' file
+   print "Query: inType = ",inType,", folder: ",lFolder,', with filter: ',filter
+   sys.stdout.flush()
+   fldr = datacatalog.getDatasetFolder(lFolder)
+   mysearch = datacatalog.createDatasetSearch(fldr,filter)
+   mysearch.setRecurseFolders(True)
+   mysearch.setScrollable(True)
+   try:
+      datasetList = mysearch.getDatasets()
+   except:
+      print "Failure of dataCatalog search"
+      return
+   
+
+   ## Build list of filenames
+   outfile = sensorID+'_'+inType+'.txt'
+   pvl = pipeline.createFile(outfile)
+   numds = 0
+   for ds in datasetList:
+      dstr = ds.getLocation("SLAC").getPath()
+      pvl.addLine(dstr)
+      numds += 1
+      print numds,': dstr = ',dstr
+      sys.stdout.flush()
+      pass
+
+   ## Error of no file found
+   if numds == 0:
+      print "%ERROR: no datafiles found in query.  Aborting..."
+      sys.exit(1)
+      pass
+   
+   ##  Write list of files to a 'pipeline file'
+   pipeline.writeFile(pvl)
+   print "Created file: ",outfile
+   sys.stdout.flush()
+
+   ## All done.
+   return
+
+
+######################## Start setupAnalysis.jy ######################################
+
+## Fetch pipeline variables
+sVarList   = pipeline.getCurrentStream().getVariables()
+print "pipeline stream variables:"
+for var in sVarList:
+    print var,': ',sVarList[var]
+    pass
+sys.stdout.flush()
+
+pVarList = pipeline.getCurrentProcessInstance().getVariables()
+print "pipeline process variables:"
+for var in pVarList:
+    print var,': ',pVarList[var]
+    pass
+sys.stdout.flush()
+
+## ## Execute the task's config.py
+## configpy = sVarList['CONFIGDIR']+'/analysisDict.py'
+## print 'configpy = ',configpy
+## sys.stdout.flush()
+## execfile(configpy)
+
+
+## Extract 'source' and 'sensorID'
+sensorDir = str(sVarList['LSST_SENSOR_DIR'])
+source = sensorDir.split('/')[0]
+sensorID = sensorDir.split('/')[1]
+
+print "source = ",source
+print "sensorID = ",sensorID
+sys.stdout.flush()
+
+## Perform query to assemble list of files needed by analysis
+print "Attempt to query the dataCatalog..."
+sys.stdout.flush()
+
+
+##
+## The following is used to read Harvard generated data as preprocessed by Heather (4/19/2013)
+##  Data located in /nfs/farm/g/lsst/u1/testData/...
+##
+
+dataCatInDataRoot = '/LSST/SensorTestData'
+
+## Each of the following queries *must* return at least one dataset
+
+## Query 1 - fe55_gain
+inType = "FE55"
+lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+filter = 'LSST_NUM=="'+sensorID+'" && TESTTYPE=="XRAY" && IMGTYPE!="BIAS" && IMGTYPE!="DARK"'
+dcQuery(inType,lFolder,filter)
+
+## Query 2 - read_noise #1
+inType = "BIAS"
+lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="XRAY" && IMGTYPE=="BIAS"'
+dcQuery(inType,lFolder,filter)
+
+## Query 3 - read_noise #2
+inType = "SYSNOISE"
+lFolder = dataCatInDataRoot+"/"+source+"/System"
+filter = 'TESTTYPE=="NOISE"'
+dcQuery(inType,lFolder,filter)
+
+## Query 4 - ptc
+inType = "PTC_FLAT"
+lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="FLAT" && IMGTYPE!="BIAS"'
+dcQuery(inType,lFolder,filter)
+
+## Query 5 - linearity
+inType = "FLAT"
+lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="FLAT" && IMGTYPE!="BIAS"'
+dcQuery(inType,lFolder,filter)
+
+## Query 6 - dark_current & bright_pixels
+inType = "DARK"
+lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="DARK" && IMGTYPE=="DARK" && LAKESHORE_SETPOINT=="-95.0"'
+dcQuery(inType,lFolder,filter)
+
+
+
+
+
+
+
+## ##
+## ## The following is needed for processing 'test' updated BNL data (via Heather's script)
+## ##  Data located in /nfs/farm/g/lsst/u1/sensorTestData/...
+## ##
+
+## dataCatInDataRoot = '/LSST/newSensorTestData'   ## TEST version
+
+## ## Each of the following queries *must* return at least one dataset
+
+## ## Query 1 - fe55_gain
+## inType = "FE55"
+## lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+## filter = 'LSST_NUM=="'+sensorID+'" && TESTTYPE=="Fe55" && IMGTYPE!="BIAS" && IMGTYPE!="DARK"'
+## dcQuery(inType,lFolder,filter)
+
+## ## Query 2 - read_noise #1
+## inType = "BIAS"
+## lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+## filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="Fe55" && IMGTYPE=="BIAS"'
+## dcQuery(inType,lFolder,filter)
+
+## ## ## Query 3 - read_noise #2    ### TEMPORARY 4/16/2013 - no system noise msmts from BNL yet ###
+## ## inType = "SYSNOISE"
+## ## lFolder = dataCatInDataRoot+"/"+source+"/System"
+## ## filter = 'TESTTYPE=="NOISE"'
+## ## dcQuery(inType,lFolder,filter)
+
+## ## Query 4 - ptc
+## inType = "PTC_FLAT"
+## lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+## filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="PTC" && IMGTYPE!="BIAS"'
+## dcQuery(inType,lFolder,filter)
+
+## ## Query 5 - linearity
+## inType = "FLAT"
+## lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+## filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="PTC" && IMGTYPE!="BIAS"'
+## dcQuery(inType,lFolder,filter)
+
+## ## Query 6 - dark_current & bright_pixels
+## inType = "DARK"
+## lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
+## filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="Dark" && IMGTYPE=="DARK" && CRYO_1_SETPT=="-100.0"'
+## dcQuery(inType,lFolder,filter)
+
+
+##  DONE!
+

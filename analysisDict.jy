@@ -1,0 +1,23 @@
+## analysisDict.jy
+##
+## Snippet of python/jython configuration needed by Pipeline jython
+## scriptlets.  This is used directly by config.py and
+## setupAnalysis.jy
+
+## Database of what each analysis step requires as input.
+##    {<testName>:[<inputFilesName>,<dataCatalogQuery>]
+
+sensorAnalysisRef = {
+    'fe55_gain':['FE55',"TESTTYPE=='XRAY' && IMGTYPE!='BIAS' && IMGTYPE!='DARK'"],
+    'read_noise':[['BIAS',"TESTTYPE=='XRAY' && IMGTYPE=='BIAS'"],
+                  ['SYSNOISE',"TESTTYPE=='NOISE'"]],
+    'ptc':['PTC_FLAT',"TESTTYPE=='FLAT' && IMGTYPE=='FLAT'"],
+    'linearity':['FLAT',"TESTTYPE=='FLAT' && IMGTYPE=='FLAT'"],
+    'dark_current':['DARK',"TESTTYPE=='DARK' && IMGTYPE=='DARK'"],
+    'bright_pixels':['DARK',"TESTTYPE=='DARK' && IMGTYPE=='DARK'"]
+    }
+
+## List of analysis steps to perform
+
+SensorAnalysisList = ['fe55_gain','read_noise']
+

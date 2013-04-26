@@ -1,0 +1,162 @@
+print "Entering regResults.jy"
+
+
+import os
+import sys
+import datetime
+from java.util import HashMap
+from org.glast.datacat.client.sql import NewDataset
+
+
+## Unpack pipeline variables sent from the Analysis step -- namely, the list of files to be registered
+pVarList = pipeline.getProcessInstance('Analysis').getVariables()
+print 'pVarList = ',pVarList
+sys.stdout.flush()
+
+## Current Process Instance variables
+## cVarList = pipeline.getCurrentProcessInstance().getVariables()
+## Current Stream variables
+## sVarList = pipeline.getCurrentStream().getVariables()
+
+
+
+## taskPath is used for logical folder name
+##  Ref: http://srs.slac.stanford.edu/hudson/view/SRS/job/org-srs-pipeline-server/javadoc/
+taskPath = pipeline.getCurrentTask().getNamePath()
+task = taskPath.split('.')[0]
+##print 'taskPath = ',taskPath
+
+
+## Unpack the list of output files produced by this analysis
+fileList = []     ## List of full file paths to register
+regNames = []     ## List of registration names
+fileNames = []    ## List of file names in the output directory
+testNames = []    ## List of test (analysis) names
+
+## if "NUMREADNOISEFILES" in pVarList:
+##     nfiles = pVarList['NUMREADNOISEFILES']
+##     print "# output files to register = ",nfiles
+##     sys.stdout.flush()
+##     for ix in range(nfiles):
+##         name = "READNOISE_%02i" % ix
+##         if name not in pVarList:
+##             print "%ERROR: expected variable not found: ",name
+##             sys.stdout.flush()
+##             continue
+##         fileList.append(pVarList[name])
+##         regName = os.path.splitext(os.path.basename(pVarList[name]))[0]
+##         regNames.append(os.path.basename(regName))
+##         pass
+##     pass
+
+
+## Register all files in the output directory tree used by the analysis scripts
+##   stored in pipeline variable LSST_OUTPUTDIR_ROOT/<testName>
+if 'LSST_OUTPUTDIR_ROOT' in pVarList:
+    outdir = pVarList['LSST_OUTPUTDIR_ROOT']
+    print 'outdir = ',outdir
+    testDirNames = os.listdir(outdir)
+    print 'testDirNames = ',testDirNames
+    for testDir in testDirNames:
+        print 'testDir = ',testDir
+        outdirx = os.path.join(outdir,testDir)
+        fileNames = os.listdir(outdirx)
+        print 'fileNames = ',fileNames
+        for file in fileNames:
+            regName = os.path.basename(file)
+            regNames.append(os.path.basename(regName))
+            fileList.append(os.path.join(outdirx,file))
+            testNames.append(testDir)
+            pass
+        pass
+else:
+    print '%ERROR: Could not find output directory variable, LSST_OUTPUTDIR_ROOT'
+    sys.exit(1)
+    pass
+
+
+print "fileList = ",fileList
+sys.stdout.flush()
+print "regNames = ",regNames
+sys.stdout.flush()
+print 'testNames = ',testNames
+sys.stdout.flush()
+
+
+## Fetch sensor ID
+sensorDir = LSST_SENSOR_DIR.split('/')[0]
+sensorID = LSST_SENSOR_DIR.split('/')[1]
+print 'sensorDir = ',sensorDir
+print 'sensorID = ',sensorID
+sys.stdout.flush()
+
+fileFormat = 'fits'
+dataType = 'LSSTSENSORTEST'
+
+## DataCatalog logical folders for results:
+## logicalFolder = '/LSST/SensorAnalysis/<taskName>/<stream>/<source>/<sensorID>/<testType>
+streamNum = pipeline.getStreamPath().split('.')[0]
+processInst = int(pipeline.getCurrentProcessInstance().getPk())
+
+analysisType = "read_noise"
+
+logicalFolder = '/LSST/SensorAnalysis/'+task+'/Stream-'+str(streamNum)+'/'+sensorDir+'/'+sensorID
+group = analysisType
+site = "SLAC"
+
+
+
+## Setup for registration
+
+##
+##public NewDataset(java.lang.String name,
+##                  java.lang.String fileFormat,
+##                  java.lang.String dataType,
+##                  java.lang.String logicalFolderPath,
+##                  java.lang.String groupName,
+##                  java.lang.String site,
+##                  java.lang.String location)
+
+##public Dataset registerDataset(NewDataset ds,
+##                               java.util.Map<java.lang.String,java.lang.Object> metaData,
+##                               boolean replaceExisting)
+
+now = datetime.datetime.utcnow().isoformat()+'Z'
+fileFormats = ['fits','root','pdf','txt','jpg','png','xls','html','cpp']
+print "Start registration"
+sys.stdout.flush()
+
+for regName,filePath,testName in zip(regNames,fileList,testNames):
+    group = testName
+
+##  Prepare metadata
+    attributes = HashMap()
+    attributes.put('sAnalysisType',testName)
+    attributes.put('sRegTime',now)
+    print "attributes: ",attributes
+    sys.stdout.flush()
+
+##  Set the fileFormat
+    ext = os.path.splitext(regName)[1].lstrip('.')
+    if ext == 'gz':       ## exception if file is gzipped
+        ext2 = os.path.splitext(os.path.splitext(regName)[0]).lstrip('.')
+        if ext2 != '' : ext=ext2
+        pass
+    print 'ext = ',ext
+    sys.stdout.flush()
+    if ext in fileFormats:
+        fileFormat = ext
+    else:
+        fileFormat = 'dat'
+        pass
+
+    print "NewDataset(",regName,",",fileFormat,",",dataType,",",logicalFolder,",",group,",",site,",",filePath,")"
+    sys.stdout.flush()
+    dcReg = NewDataset(regName, fileFormat, dataType, logicalFolder, group, site, filePath)
+    rds = datacatalog.registerDataset(dcReg, attributes, 1)
+    pass
+
+print "Done."
+
+
+###################################################################################################

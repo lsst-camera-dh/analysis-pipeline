@@ -1,0 +1,11 @@
+## 4/16/2013 - Heather's latest 'new and improved' sensor data from BNL
+#BNLData/112-01
+#BNLData/112-04
+#BNLData/112-08
+#BNLData/113-03
+
+## 3/25/2013 - First try with improved file names, directory structure, headers
+#eotestData/000-00
+#eotestData/112-02
+eotestData/112_03
+

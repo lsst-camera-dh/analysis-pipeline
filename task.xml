@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline xmlns="http://glast-ground.slac.stanford.edu/pipeline" 
+          xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" 
+          xs:schemaLocation="http://glast-ground.slac.stanford.edu/pipeline 
+          http://srs.slac.stanford.edu/Pipeline-II/schemas/2.0/pipeline.xsd">
+  <task name="LSST_Sensor_Analysis" type="LSSTPROD" version="0.91">
+
+    <notation>LSST sensor test data analysis</notation> 
+
+
+<!-- Task-level job configuration variables-->
+    <variables>
+      <var name="LSSTROOT">/nfs/farm/g/lsst/u1</var>
+      <var name="TASKROOT">${LSSTROOT}/Pipeline-tasks/${pipeline.taskVersionPath.replaceAll("\\(.*","")}</var>
+      <var name="CONFIGDIR">${TASKROOT}/config</var>
+      <var name="logRoot">${TASKROOT}/output</var>
+
+<!-- DataCatalog file locations -->
+      <var name="LDprefix">/LSST/SensorTestData</var>
+    </variables>
+
+
+
+<!--  Initial processing for this run (stream) -->
+      <process name="setup">
+         <job 
+              executable="${CONFIGDIR}/setup.py" 
+              queue="bulletq"
+              batchOptions=" "
+         />
+      </process>
+
+
+    <process name="dispatchAnalysis">
+         <script><![CDATA[ 
+
+execfile(CONFIGDIR+"/dispatchAnalysis.jy")
+
+           ]]>
+         </script>
+      <depends>
+        <after process="setup" status="SUCCESS"></after>
+      </depends>
+      <createsSubtasks>
+        <subtask>processSensor</subtask>
+      </createsSubtasks>
+    </process>
+
+
+    <process name="Summary">
+      <job 
+         executable="${CONFIGDIR}/Summary.py" 
+         queue="bulletq"
+         batchOptions=" "
+         />
+      <depends>
+        <after process="processSensor.regResults" status="SUCCESS"></after>
+      </depends>
+    </process>
+
+
+
+<!-- SUBTASK for parallelized sensor processing -->
+     <task name="processSensor" version="0.1" type="LSSTPROD">
+
+       <process name="setupAnalysis">
+         <script><![CDATA[ 
+
+execfile(CONFIGDIR+"/setupAnalysis.jy")
+
+           ]]>
+         </script>
+       </process>
+
+
+       <process name="Analysis">
+         <job 
+              executable="${CONFIGDIR}/Analysis.py" 
+              queue="bulletq"
+              batchOptions=" "
+         />
+	 <depends>
+           <after process="setupAnalysis" status="SUCCESS"></after>
+	 </depends>
+       </process>
+
+
+       <process name="regResults">
+         <script><![CDATA[ 
+
+execfile(CONFIGDIR+"/regResults.jy")
+
+           ]]>
+         </script>
+	 <depends>
+           <after process="Analysis" status="SUCCESS"></after>
+	 </depends>
+       </process>
+
+     </task>  <!-- processSensor -->
+
+
+  </task> <!-- LSST_demo1 -->
+
+</pipeline>

@@ -1,0 +1,39 @@
+## dispatchAnalysis.jy
+
+## Create analysis streams for each sensor
+print "Entering dispatchAnalysis.jy"
+
+import os
+import sys
+from java.util import HashMap
+
+
+## Read list of sensors from pipeline variables
+parentPI   = pipeline.getProcessInstance('setup')
+numSensors = parentPI.getVariable("LSST_NUM_SENSORS")
+
+sensorDict = {}
+for sensor in range(numSensors):
+    name = 'LSST_SENSOR_'+str(sensor)
+    sensorDict[name]=parentPI.getVariable(name)
+    print 'name = ',name,', value = ',sensorDict[name]
+    pass
+
+print "# sensors in list = ",len(sensorDict)
+
+for item in sensorDict:
+    print item,', ',sensorDict[item]
+    pass
+
+
+## Submit sub-streams, one each per sensor
+pipeVars = HashMap()
+
+for ename in sensorDict:
+    sensorDir = sensorDict[ename]
+    stream = int(ename.split('_')[-1])
+    print 'stream = ',stream,', sensorDir = ',sensorDir
+    pipeVars.put('LSST_SENSOR_DIR',sensorDir)
+    pipeline.createSubstream("processSensor",stream,pipeVars)
+    pass
+
