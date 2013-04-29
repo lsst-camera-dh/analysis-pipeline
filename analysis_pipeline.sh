@@ -1,5 +1,7 @@
 #!/bin/sh
 
+## Updated 4/26/2013 to use new user interface to three analysis scripts.
+
 echo ""
 echo ""
 echo "Entering analysis_pipeline.sh wrapper..."
@@ -42,8 +44,10 @@ echo ""
 echo "============================================================================================="
 
 echo "Calling fe55_gain analysis script..."
+date
 export OUTPUTDIR=${OUTPUTDIR_ROOT}/fe55_gain
-python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/fe55_gain_task.py
+##python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/fe55_gain_task.py   OLD form
+python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/fe55_gain_task.py -d ${DB_CREDENTIALS} -s ${SENSOR_ID} -V ${CCD_VENDOR} -o ${OUTPUTDIR} -v -F ${LSST_SENSOR_DATAFILE_BIAS}
 rc=$?
 echo "Return from analysis script = " $rc 
 echo "============================================================================================="
@@ -52,9 +56,11 @@ echo "==========================================================================
 echo ""
 echo ""
 echo "Calling read_noise analysis script..."
+date
 export OUTPUTDIR=${OUTPUTDIR_ROOT}/read_noise
-##python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/bnl_read_noise_task.py  ### special for BNL
-python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/read_noise_task.py  ### with system noise
+###python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/bnl_read_noise_task.py  ### special for BNL
+##python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/read_noise_task.py  ### with system noise
+python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/read_noise_task.py -d ${DB_CREDENTIALS} -s ${SENSOR_ID} -V ${CCD_VENDOR} -o ${OUTPUTDIR} -v -N ${LSST_SENSOR_DATAFILE_SYSNOISE} -B ${LSST_SENSOR_DATAFILE_BIAS}
 rc=$?
 echo "Return from analysis script = " $rc 
 echo "============================================================================================="
@@ -63,6 +69,7 @@ echo "==========================================================================
 echo ""
 echo ""
 echo "Calling ptc analysis script..."
+date
 export OUTPUTDIR=${OUTPUTDIR_ROOT}/ptc
 python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/ptc_task.py
 rc=$?
@@ -73,6 +80,7 @@ echo "==========================================================================
 echo ""
 echo ""
 echo "Calling linearity analysis script..."
+date
 export OUTPUTDIR=${OUTPUTDIR_ROOT}/linearity
 python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/linearity_task.py
 rc=$?
@@ -83,6 +91,7 @@ echo "==========================================================================
 echo ""
 echo ""
 echo "Calling dark_current analysis script..."
+date
 export OUTPUTDIR=${OUTPUTDIR_ROOT}/dark_current
 python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/dark_current_task.py
 rc=$?
@@ -93,8 +102,10 @@ echo "==========================================================================
 echo ""
 echo ""
 echo "Calling bright_pixels analysis script..."
+date
 export OUTPUTDIR=${OUTPUTDIR_ROOT}/bright_pixels
-python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/bright_pixels_task.py
+##python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/bright_pixels_task.py
+python2.7 ${LSST_ANALYSIS_SCRIPT_DIR}/pipeline/bright_pixels_task.py -d ${DB_CREDENTIALS} -s ${SENSOR_ID} -V ${CCD_VENDOR} -o ${OUTPUTDIR} -v -F ${LSST_SENSOR_DATAFILE_DARK}
 rc=$?
 echo "Return from analysis script = " $rc 
 echo "============================================================================================="

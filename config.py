@@ -12,11 +12,13 @@ sensorListF = os.environ['CONFIGDIR']+'/sensorList.txt'
 os.environ['LSST_ANALYSIS_CODE_VERSION'] = '0.0.0.4'  ## 4/18/2013
 os.environ['LSST_ANALYSIS_SCRIPT_DIR'] = '/afs/slac/g/lsst/software/redhat6-x86_64-64bit-gcc44/lsstCameraSensor/test_scripts/'+os.environ['LSST_ANALYSIS_CODE_VERSION']+'/'
 
-os.environ['LSST_INDATA_ROOT']='/nfs/farm/g/lsst/u1/testData/'   ## original
-##os.environ['LSST_INDATA_ROOT']='/nfs/farm/g/lsst/u1/sensorTestData/'  ## new & improved test data
+#################  DEBUG 4/26/2013 to test new test_script interface  ##################
+os.environ['LSST_ANALYSIS_SCRIPT_DIR'] = '/nfs/farm/g/lsst/u1/Pipeline-tasks/LSST_Sensor_Analysis/test_scripts-20130422'
+
+os.environ['LSST_INDATA_ROOT']='/nfs/farm/g/lsst/u1/testData/'   ## original (Harvard)
+##os.environ['LSST_INDATA_ROOT']='/nfs/farm/g/lsst/u1/sensorTestData/'  ## new & improved test data (BNL)
 os.environ['LSST_OUTDATA_ROOT']=os.environ['TASKROOT']+'/data'
 
-##os.environ['LSST_ANALYSIS_NAME'] = 'read_noise'
 os.environ['LSST_SENSOR_VENDOR'] = 'e2v'
 
 

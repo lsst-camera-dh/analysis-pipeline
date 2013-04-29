@@ -22,7 +22,8 @@ def dcQuery(inType,lFolder,filter):
    
 
    ## Build list of filenames
-   outfile = sensorID+'_'+inType+'.txt'
+   outfile = sensorID+'_'+inType+'.txt'                  ## filename of filelist
+   outvar = 'LSST_SENSOR_DATAFILE_'+inType.upper()  ## pipeline var name
    pvl = pipeline.createFile(outfile)
    numds = 0
    for ds in datasetList:
@@ -45,7 +46,7 @@ def dcQuery(inType,lFolder,filter):
    sys.stdout.flush()
 
    ## All done.
-   return
+   return (outvar,outfile)
 
 
 ######################## Start setupAnalysis.jy ######################################
@@ -94,45 +95,65 @@ sys.stdout.flush()
 dataCatInDataRoot = '/LSST/SensorTestData'
 
 ## Each of the following queries *must* return at least one dataset
+outFileDict = {}
 
 ## Query 1 - fe55_gain
 inType = "FE55"
 lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
 filter = 'LSST_NUM=="'+sensorID+'" && TESTTYPE=="XRAY" && IMGTYPE!="BIAS" && IMGTYPE!="DARK"'
-dcQuery(inType,lFolder,filter)
+foo = dcQuery(inType,lFolder,filter)
+outFileDict[foo[0]] = foo[1]
 
 ## Query 2 - read_noise #1
 inType = "BIAS"
 lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
 filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="XRAY" && IMGTYPE=="BIAS"'
-dcQuery(inType,lFolder,filter)
+foo = dcQuery(inType,lFolder,filter)
+outFileDict[foo[0]] = foo[1]
 
 ## Query 3 - read_noise #2
 inType = "SYSNOISE"
 lFolder = dataCatInDataRoot+"/"+source+"/System"
 filter = 'TESTTYPE=="NOISE"'
-dcQuery(inType,lFolder,filter)
+foo = dcQuery(inType,lFolder,filter)
+outFileDict[foo[0]] = foo[1]
 
 ## Query 4 - ptc
 inType = "PTC_FLAT"
 lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
 filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="FLAT" && IMGTYPE!="BIAS"'
-dcQuery(inType,lFolder,filter)
+foo = dcQuery(inType,lFolder,filter)
+outFileDict[foo[0]] = foo[1]
 
 ## Query 5 - linearity
 inType = "FLAT"
 lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
 filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="FLAT" && IMGTYPE!="BIAS"'
-dcQuery(inType,lFolder,filter)
+foo = dcQuery(inType,lFolder,filter)
+outFileDict[foo[0]] = foo[1]
 
 ## Query 6 - dark_current & bright_pixels
 inType = "DARK"
 lFolder = dataCatInDataRoot+"/"+source+"/"+sensorID
 filter = 'LSST_NUM == "'+sensorID+'" && TESTTYPE=="DARK" && IMGTYPE=="DARK" && LAKESHORE_SETPOINT=="-95.0"'
-dcQuery(inType,lFolder,filter)
+foo = dcQuery(inType,lFolder,filter)
+outFileDict[foo[0]] = foo[1]
 
 
+## Generate pipeline variables for downstream jobs
+print 'outFileDict = ',outFileDict        ## DEBUG
+for i in outFileDict:
+   pipeline.setVariable(i,outFileDict[i])
+   pass
 
+
+## Generate pipeline file for downstream jobs
+pvl = pipeline.createFile("sensorData.txt")
+for i in outFileDict:
+   var = i+'='+outFileDict[i]
+   pvl.addLine(var)
+   pass
+pipeline.writeFile(pvl)
 
 
 
